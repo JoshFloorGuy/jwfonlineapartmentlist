@@ -1,0 +1,20 @@
+<html>
+	<head>
+		<title>Log In to Josh's List</title>
+	</head>
+	<body>
+		<p>Sorry! You'll have to log in to access this list!</p>
+		<form action="./redirect" method="post">
+			Password:<input type="password" name="pass"><br><br>
+			<input type="submit" value="Log In">
+		</form>
+		<script>
+			if(window.location.search=="?incorrect") {
+				var p = document.createElement('p');
+				p.style = "color:red;font-family:sans-serif"
+				p.innerHTML = "Password incorrect, please try again"
+				document.body.prepend(p)
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,218 @@
+<html>
+	<head>
+		<title>Josh's Online List for Apartment</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+		<style>
+			body {
+				font-family:sans-serif
+			}
+			a {
+				text-decoration:none
+			}
+			@keyframes loading {
+				0% {background-position: 100% 50%}
+				100% {background-position: 0% 50%}
+			}
+			#loadingBar {
+				width:64px;
+				height:32px;
+				display:inline-block;
+				background:linear-gradient(to right, rgba(0,0,0,0) 40%,blue 40%, blue 60%,rgba(0,0,0,0) 60%);
+				background-size:300% 300%;
+				animation-name:loading;
+				animation-duration:1s;
+				animation-timing-function:linear;
+				animation-iteration-count:infinite;
+				
+			}
+			#loadingContainer {
+				display:flex;
+				align-items:center;
+				padding:10px;
+				background-color:white
+			}
+			#loadingMask {
+				display:flex;
+				justify-content:center;
+				align-items:center;
+				position:absolute;
+				left:0;
+				top:0;
+				margin:0;
+				padding:0;
+				background-color:#00000020;
+				width:100%;
+				height:100%;
+				z-index:9
+			}
+			[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+				display: none !important;
+			}
+		</style>
+		<script>
+			if(document.cookie=="") {window.location = window.location.href+"login"} else {
+				var d = new Date();
+				d.setTime(d.getTime()+86400000);
+				document.cookie = "logged=in; expires="+d.toUTCString()+";path=/";
+			}
+		</script>
+	</head>
+	<body>
+		<div id="loadingMask">
+			<div id="loadingContainer">
+				<b style="font-size:24px;margin:0;margin-right:20px;font-family:sans-serif">Loading...</b>
+				<div id="loadingBar"></div>
+			</div>
+		</div>
+		<div id="newItemMask" style="display:none;justify-content:center;align-items:center;width:100%;height:100%;margin:0;position:absolute;top:0;left:0;z-index:7;background-color:#00000080"></div>
+		<div id="bod" ng-app="loadIt" ng-controller="getJSON" style="width:100%;height:100%;padding:0;margin:0;position:absolute;left:0;height:0;overflow-y:hide" ng-cloak>
+			<div style="display:flex;flex-shrink:1;width:100%;margin:0;padding:0;justify-content:center"><h1 style="display:inline">Josh's Online Apartment List</h1></div>
+			
+			<div style="display:none;flex-direction:column;position:absolute;z-index:5;left:5px;top:5px;background-color:#E0E0E0" id="mover">
+				<b style="font-size:12px;padding:10px;margin:0;background-color:#D0D0D0">Move to...<a style="margin-left:20px;color:red" href="javascript:closeHover()">x</a></b>
+				<a ng-repeat="x in data" style="margin:10px;padding:0;flex-grow-1;text-align:center;font-family:monospace" id="{{x.name}}" href="javascript:moveItem('{{x.name}}')">{{x.name}}</a>
+				<a style="margin:10px;padding:0;flex-grow-1;text-align:center;font-family:monospace" href="javascript:moveItem(window.prompt('What is the name of this new list? (Things I [blank])'))">(new)</a>
+			</div>
+			
+			<div style="display:flex;width:100%;flex:grow;1">
+				<div ng-repeat="x in data" style="display:flex;flex-grow:1;height:100%;flex-direction:column">
+					<br>
+					<br>
+					<table style="width:100%">
+						<tbody>
+						<tr><th><h2 style="display:inline">Things I {{ x.name }}</h2></th></tr>
+							<tr><td><div style="overflow-y:auto"><table style="width:100%"><tr  ng-repeat="y in x.items"><td>
+								<div style="display:flex;flex-grow:1;margin:5px;padding:20px;background-color:#F0F0F0">{{ y }}<div style="display:flex;flex-shrink:1;float:right;margin-left:auto"><a href="javascript:hover('{{x.name}}','{{y}}')" onclick="setPos(this)">move</a><a style="margin-left:30px" href="javascript:deleteItem('{{x.name}}','{{y}}')">x</a></div></div>
+							</td></tr></table></div></td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			
+			<div style="display:flex;justify-content:center;flex-shrink:1;width:100%;float:bottom"><button onclick="addNewItem('flex')">Add new Item</button></div>
+			
+			<div style="background-color:white;display:none;margin:0;padding:20px" id="newItemForm">
+				<form id="newItem" action="javascript:addItem()">
+					<table style="align-items:center">
+						<tbody>
+							<tr>
+								<td><h3 style="align-text:center">New Item</h3></td>
+							</tr>
+							<tr>
+								<td>Name of Item</td>
+								<td><input type="text" name="name"></td>
+							</tr>
+							<tr>
+								<td style="float:right">List</td>
+								<td><select name="type">
+										<option ng-repeat="x in data" value="{{x.name}}">Things I {{x.name}}</option>
+										<option value="newList">-new list-</option>
+									</select></td>
+							</tr>
+							<tr>
+								<td id="newLis" style="display:none">List Name</td>
+							</tr>
+							<tr>
+								<td><input style="float:right" type="submit" value="Add Item" onclick="addItem"></td>
+								<td><a href="javascript:addNewItem('none')">Cancel</a></td>
+							</tr>
+						</tbody>
+					</table>
+				</form>
+			</div>
+			
+			<form style="display:none" id="poster" method="post" action="/action">
+				<input type="text" name="name">
+				<input type="text" name="type">
+				<input type="text" name="action">
+				<input type="text" name="moveTo">
+			</form>
+		</div>
+		<script>
+			var linkPos = [];
+			var num = document.getElementById('mover').children.length
+			checkWindow()
+			function checkWindow() {
+				if(num!=document.getElementById('mover').children.length) {
+					document.getElementById("newItemMask").appendChild(document.getElementById("newItemForm"))
+					document.getElementById("newItemForm").style.display = "inline"
+					document.getElementById('loadingMask').style.display = "none"
+				} else {
+					setTimeout(checkWindow,500)
+				}
+			}
+			var open = '';
+			function setPos(e) {
+				var a  = e.getBoundingClientRect();
+				linkPos=[a.left-20,a.top-10];
+			}
+			var form = document.getElementById("poster");
+			var app = angular.module("loadIt",[])
+			.controller("getJSON", function($scope, $http) {
+				var lists = {};
+				$http.get("lists.json")
+				.then(function(response) {
+					for(x in response.data.items) {
+						item = response.data.items[x];
+						if(lists[item.type]==null) {
+							lists[item.type] = {name:item.type,items:[item.name]};
+						} else {
+							lists[item.type].items.push(item.name);
+						}
+					}
+					$scope.data = lists
+				});
+			})
+			.config( [
+				'$compileProvider',
+				function( $compileProvider )
+				{   
+					$compileProvider.aHrefSanitizationWhitelist(/^\s*(https?ftp|file|email|chrome-extension|javascript):/);
+				}
+			]);
+			function refresh() {
+				window.location=window.location.origin;
+			}
+			function deleteItem(type, name) {
+				form.name.value=name;
+				form.type.value=type;
+				form.action.value="delete"
+				form.submit();
+			}
+			function addNewItem(state) {
+				document.getElementById('newItem').reset();
+				document.getElementById('newItemMask').style.display=state
+			}
+			function hover(type,name) {
+				if(open!='') {document.getElementById(open).style.display = 'inline'}
+				form.name.value=name;
+				form.type.value=type;
+				m = document.getElementById('mover')
+				m.style.left = linkPos[0]+"px";
+				m.style.top = linkPos[1]+"px";
+				open=type;
+				document.getElementById(type).style.display = 'none';
+				m.style.display = "flex"
+			}
+			function closeHover() {
+				document.getElementById('mover').style.display = 'none';
+			}
+			function moveItem(moveTo) {
+				if(moveTo!=null || moveTo!="") {
+					form.moveTo.value=moveTo;
+					form.action.value='move';
+					form.submit();
+				}
+			}
+			function addItem() {
+				var newForm = document.getElementById("newItem");
+				if(newForm.type.value=="newList") {form.type.value=window.prompt("What is the name of this new list? (Things I [blank])")} else {form.type.value=newForm.type.value}
+				if((form.type.value!=null && form.type.value!="") || newForm.type.value!="newList") {
+					form.name.value=newForm.name.value;
+					form.action.value="add";
+					form.submit();
+				}
+			}
+		</script>
+	</body>
+</html>
